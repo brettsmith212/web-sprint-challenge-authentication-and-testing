@@ -6,7 +6,7 @@ const {
   usernameExists,
   validatePost,
 } = require("../middleware/auth-middleware");
-const { add } = require("./users-model");
+const { add, findBy } = require("./users-model");
 
 router.post("/register", validatePost, usernameExists, (req, res) => {
   const user = req.body;
@@ -50,7 +50,21 @@ router.post("/register", validatePost, usernameExists, (req, res) => {
 });
 
 router.post("/login", validatePost, (req, res) => {
-  res.end("implement login, please!");
+  const { username, password } = req.body;
+
+  findBy({ username })
+    .then(([user]) => {
+      if (user && bcrypt.compareSync(password, user.password)) {
+        const token = generateToken(user);
+        res.status(200).json({ message: `welcome, ${user.username}`, token });
+      } else {
+        res.status(401).json({ message: "invalid credentials" });
+      }
+    })
+    .catch(() => {
+      res.status(500).json({ message: "error logging in" });
+    });
+
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
