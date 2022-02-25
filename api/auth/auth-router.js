@@ -1,7 +1,27 @@
-const router = require('express').Router();
+const router = require("express").Router();
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { JWT_SECRET, BCRYPT_ROUNDS } = require("../secrets");
+const {
+  usernameExists,
+  validatePost,
+} = require("../middleware/auth-middleware");
+const { add } = require("./users-model");
 
-router.post('/register', (req, res) => {
-  res.end('implement register, please!');
+router.post("/register", validatePost, usernameExists, (req, res) => {
+  const user = req.body;
+
+  const hash = bcrypt.hashSync(user.password, BCRYPT_ROUNDS);
+  user.password = hash;
+
+  add(user)
+    .then((newUser) => {
+      res.status(201).json(newUser);
+    })
+    .catch(() => {
+      res.status(500).json({ message: "error adding new user" });
+    });
+
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -29,8 +49,8 @@ router.post('/register', (req, res) => {
   */
 });
 
-router.post('/login', (req, res) => {
-  res.end('implement login, please!');
+router.post("/login", validatePost, (req, res) => {
+  res.end("implement login, please!");
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -55,5 +75,13 @@ router.post('/login', (req, res) => {
       the response body should include a string exactly as follows: "invalid credentials".
   */
 });
+
+function generateToken(user) {
+  const payload = {
+    subject: user.id,
+    username: user.username,
+  };
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
+}
 
 module.exports = router;
